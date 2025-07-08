@@ -145,72 +145,6 @@ class FoodSeg:
 
         return pe_model, preprocess, pred2, processor, grounding_model
 
-    def classify_regions_pe_no_text(self,
-                                    masks: np.ndarray,
-                                    img_rgb: np.ndarray,
-                                    preprocess,
-                                    pe_model,
-                                    device,
-                                    proto_embs: dict[str, np.ndarray],
-                                    sim_thr: float):
-        """
-        Classifies image regions based on visual similarity to prototype embeddings using the PE model.
-
-        Args:
-            masks (np.ndarray): Binary masks for segmented regions (H x W or N x H x W).
-            img_rgb (np.ndarray): Original RGB image as a NumPy array (H x W x 3).
-            preprocess (Callable): Preprocessing function for image input to the model.
-            pe_model: Pretrained PE model with an encode_image() method.
-            device (torch.device): Device to run inference on.
-            proto_embs (dict[str, np.ndarray]): Dictionary mapping class names to prototype embeddings.
-            sim_thr (float): Similarity threshold for classification.
-
-        Returns:
-            tuple:
-                - class_masks (dict[str, np.ndarray]): Binary masks per class where regions are classified.
-                - confs (dict[str, float]): Confidence scores per class.
-        """
-        H, W = img_rgb.shape[:2]
-        class_masks = {c: np.zeros((H, W), bool) for c in proto_embs}
-        confs = {}
-
-        for i in range(masks.shape[0] if masks.ndim > 2 else 1):
-            mask = masks[i] if masks.ndim > 2 else masks
-            ys, xs = mask.nonzero()
-            if ys.size == 0:
-                continue
-
-            # Crop region from original image
-            y0, y1 = ys.min(), ys.max() + 1
-            x0, x1 = xs.min(), xs.max() + 1
-            crop = img_rgb[y0:y1, x0:x1]
-            crop_pil = Image.fromarray(crop)
-            img_t = preprocess(crop_pil).unsqueeze(0).to(device)
-
-            # Encode the image region using PE model
-            with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.bfloat16):
-                img_feat = pe_model.encode_image(img_t)  # shape: (1, D)
-
-            # Normalize feature vector
-            img_feat = img_feat.float()
-            feat = img_feat.cpu().numpy().reshape(-1)
-            feat /= (np.linalg.norm(feat) + 1e-8)
-
-            # Compute cosine similarity with each class prototype
-            sims = {
-                cls: float(cosine_similarity(
-                    feat[None], proto_embs[cls][None])[0, 0])
-                for cls in proto_embs
-            }
-
-            # Choose the class with highest similarity if above threshold
-            pred, best = max(sims.items(), key=lambda kv: kv[1])
-            if best >= sim_thr:
-                class_masks[pred] |= mask
-                confs[pred] = max(confs.get(pred, 0.0), best)
-
-        return class_masks, confs
-
     def load_prototype_embeddings(self, embeddings_dir: str, date_key: str):
         """
         Loads prototype embeddings for each class from disk.
@@ -260,77 +194,6 @@ class FoodSeg:
                 cmap[cls] = rgb
         self.logger.info("Loaded %d classes from colormap", len(classes))
         return classes, cmap
-
-    def load_prototype_features(self, proto_dir, classes, enc, tf, device, max_per_class=-1):
-        """
-        Loads and encodes prototype images into feature vectors for each class.
-
-        Args:
-            proto_dir (str or Path): Root directory containing per-class prototype images.
-            classes (list[str]): List of class names.
-            enc (Callable): Feature encoder (e.g., model.encode_image).
-            tf (Callable): Transform/preprocessing function for input images.
-            device (torch.device): Device to perform encoding on.
-            max_per_class (int): Maximum number of images to use per class (-1 for all).
-
-        Returns:
-            tuple:
-                - all_feats (np.ndarray): Array of normalized feature vectors (N x D).
-                - all_labels (list[str]): Corresponding class labels for each feature.
-        """
-        all_feats, all_labels = [], []
-        with torch.no_grad():
-            for cls in classes:
-                pdir = Path(proto_dir) / cls
-                if not pdir.is_dir():
-                    self.logger.warning("No prototype folder for '%s'", cls)
-                    continue
-
-                # Gather prototype images
-                imgs = sorted(pdir.glob("*.*"))
-                if max_per_class > 0:
-                    imgs = imgs[:max_per_class]
-
-                for p in imgs:
-                    arr = np.array(Image.open(p).convert("RGB"))
-                    inp = tf(arr).unsqueeze(0).to(device)
-                    feat = enc(inp).squeeze().cpu().numpy()
-                    # Normalize feature vector
-                    feat /= (np.linalg.norm(feat) + 1e-8)
-                    all_feats.append(feat.astype("float32"))
-                    all_labels.append(cls)
-
-        self.logger.info("Embedded %d prototype crops across %d classes",
-                         len(all_feats), len(set(all_labels)))
-        return np.stack(all_feats, 0), all_labels
-
-    def single_mask_to_rle(self, mask: np.ndarray) -> dict:
-        """
-        Converts a binary mask (2D or 3D with a single channel) into COCO RLE (Run-Length Encoding) format.
-
-        Args:
-            mask (np.ndarray): A boolean or binary mask of shape (H, W) or (H, W, 1).
-
-        Returns:
-            dict: COCO-compatible RLE representation of the mask.
-
-        Raises:
-            ValueError: If the mask is not 2D or (H, W, 1).
-        """
-        if mask.ndim == 2:
-            mask_fortran = np.asfortranarray(mask.astype(np.uint8))
-            rle = mask_util.encode(mask_fortran)
-            rle['counts'] = rle['counts'].decode('utf-8')
-            return rle
-        elif mask.ndim == 3 and mask.shape[2] == 1:
-            mask_fortran = np.asfortranarray(mask.astype(np.uint8))
-            rle = mask_util.encode(mask_fortran)[0]
-            rle['counts'] = rle['counts'].decode('utf-8')
-            return rle
-        else:
-            raise ValueError(
-                f"Mask must be 2D or 3D with last dim 1, got shape {mask.shape}"
-            )
 
     def clean_and_smart_title(self, text: str) -> str:
         """
@@ -523,41 +386,6 @@ class FoodSeg:
         faded_rgb_resized_pil = Image.fromarray(faded_rgb_resized)
         return faded_rgb_resized_pil
 
-    def compress_gif(self, input_path, output_path, max_colors=64, resize_ratio=0.8):
-        """
-        Compresses a GIF by reducing the color palette and resizing each frame.
-
-        Args:
-            input_path (str or Path): Path to the input GIF file.
-            output_path (str or Path): Path to save the compressed GIF.
-            max_colors (int, optional): Maximum number of colors per frame. Defaults to 64.
-            resize_ratio (float, optional): Resize factor for frame dimensions. Defaults to 0.8.
-
-        Returns:
-            None
-        """
-        with Image.open(input_path) as img:
-            frames = []
-            for frame in ImageSequence.Iterator(img):
-                # Convert to optimized palette and resize
-                frame = frame.convert(
-                    'P', palette=Image.ADAPTIVE, colors=max_colors)
-                frame = frame.resize(
-                    (int(frame.width * resize_ratio),
-                     int(frame.height * resize_ratio)),
-                    Image.LANCZOS
-                )
-                frames.append(frame)
-
-            # Save the optimized GIF
-            frames[0].save(
-                output_path,
-                save_all=True,
-                append_images=frames[1:],
-                loop=0,
-                optimize=True
-            )
-
     def createUI3(self, img_rgb, classes, confs, class_masks, out_dir):
         """
         Generates a GIF visualization of zoomed-in masked areas for the provided image and classes.
@@ -680,48 +508,6 @@ class FoodSeg:
         )
 
         return str(gif_path)
-
-    def create_video_with_h264(self, frames, output_path: Path, fps=1):
-        """
-        Creates an H.264-encoded MP4 video from a list of RGB frames.
-
-        Args:
-            frames (List[np.ndarray]): List of RGB image frames.
-            output_path (Path): Path where the final MP4 will be saved.
-            fps (int): Frames per second for the output video.
-        """
-        temp_path = output_path.with_suffix(".temp.mp4")
-        height, width, _ = frames[0].shape
-
-        # Ensure dimensions are even (required by H.264)
-        width -= width % 2
-        height -= height % 2
-
-        # Write raw MP4 using OpenCV with 'mp4v' codec
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(str(temp_path), fourcc, fps, (width, height))
-
-        for frame in frames:
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            frame_resized = cv2.resize(frame_bgr, (width, height))
-            out.write(frame_resized)
-
-        out.release()
-
-        # First pass: Convert to H.264 compatible MP4
-        final_output_temp = "temp.mp4"
-        subprocess.run([
-            "ffmpeg", "-y", "-i", str(temp_path),
-            "-vcodec", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", final_output_temp
-        ], check=True)
-
-        # Second pass: Final output to desired path
-        subprocess.run([
-            "ffmpeg", "-y", "-i", final_output_temp,
-            "-vcodec", "libx264", "-profile:v", "high", str(output_path)
-        ], check=True)
-
-        temp_path.unlink()  # Clean up
 
     def createUI6(self, ori_img, img_rgb, classes, confs, class_masks, out_dir):
         """

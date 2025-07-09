@@ -159,7 +159,7 @@ class FoodSeg:
         Raises:
             FileNotFoundError: If the directory for the given date_key does not exist.
         """
-        print("Date key is", date_key)
+        self.logger.info("Date key is", date_key)
         proto_embs = {}
         dirpath = os.path.join(embeddings_dir, date_key)
         if not os.path.isdir(dirpath):
@@ -780,10 +780,10 @@ class FoodSeg:
         """
         original_img = Image.fromarray(img_rgb)
         abs_mask = np.zeros_like(img_rgb)
-        print("IN SAVE RESULTS:")
-        print("TYPE OF CLASSES:", type(classes))
-        print("TYPE OF CONFS:", type(confs))
-        print("CONFS =", confs)
+        self.logger.info("IN SAVE RESULTS:")
+        self.logger.info("TYPE OF CLASSES:", type(classes))
+        self.logger.info("TYPE OF CONFS:", type(confs))
+        self.logger.info("CONFS =", confs)
 
         colors = {}
 

@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+PyYAML
+watchdog
+jinja2
+torch
+transformers
+timm
+numpy
+opencv-python
+pillow
+scikit-learn
+pycocotools
+supervision

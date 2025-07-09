@@ -1,0 +1,34 @@
+dataset:
+  input_dir: "/home/nutrition/code/yash/food-classify/selected_30/filtered_images_5/images"
+  menu_json: "config/menu.json"
+  colormap_csv: "config/colormap_new.csv"
+  gt_dir: "/home/nutrition/code/yash/food-classify/selected_30/filtered_images_5/masks"
+  results_dir: "results/selected_30_10patches_PE-Core-L14-336_patches_und"
+  # results_dir: "results/selected_30_10patches_PE-Spatial-G14-448_patches"
+models:
+  pe:
+    # config: "PE-Spatial-G14-448"
+    config: "PE-Core-L14-336"
+  segmentation:
+    sam_cfg: "configs/sam2.1/sam2.1_hiera_l.yaml"
+    sam_ckpt: "/home/nutrition/Grounded-SAM-2/checkpoints/sam2.1_hiera_large.pt"
+    gdino_cfg: "grounding_dino/groundingdino/config/GroundingDINO_SwinB_cfg.py"
+    gdino_ckpt: "/home/nutrition/Grounded-SAM-2/gdino_checkpoints/groundingdino_swinb_cogcoor.pth"
+similarity:
+  type: "cosine" # 'cosine','euclidean','manhattan','mahalanobis','knn'
+  threshold: 0.6
+  num_patches: 10
+  patch_size: 112
+  knn_k: 5 # requires knn above
+
+evaluation:
+  metrics: ["mIoU", "pixel_acc", "instance_acc"]
+api:
+  host: "0.0.0.0"
+  port: 8000
+embeddings:
+  use_mean: false
+  # directory: "/home/nutrition/code/yash/food-classify/embeddings_PE-Core-L14-336_v2"
+  directory: "/home/nutrition/code/yash/food-classify/embeddings_PE-Core-L14-336_selcted_30_patches"
+  # directory: "/home/nutrition/code/yash/food-classify/embeddings_PE-Spatial-G14-448_selcted_30_mean"
+  model: "PE-Core-L14-336"

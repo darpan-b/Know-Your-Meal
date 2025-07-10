@@ -535,5 +535,45 @@
       "paneer-curry",
       "semiya",
       "green-salad"
-  ]
+  ],
+  "20250709": [
+      "green-salad",
+      "roti",
+      "sambar",
+      "aloo-fry",
+      "veg-biriyani-spicy",
+      "mirchi-curry",
+      "plain-rice",
+      "raita",
+      "fresh-chutney",
+      "gulab-jamun"
+  ],
+  "20250710": [
+      "green-salad",
+      "phulka",
+      "beetroot-porial",
+      "malai-kofta-curry",
+      "moong-dal",
+      "plain-rice",
+      "jeera-rice",
+      "kaddu-ka-kheer",
+      "curd",
+      "chutney",
+      "papad"
+  ],
+  "20250711": [
+      "chicken-curry",
+      "green-salad",
+      "phulka",
+      "aloo-capsicum",
+      "veg-kofta-curry",
+      "dal-fry",
+      "dahi-bhalla",
+      "plain-rice",
+      "lemon-rice",
+      "sweet-boondi",
+      "curd",
+      "chutney",
+      "papad"
+  ]  
 }

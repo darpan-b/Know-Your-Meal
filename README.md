@@ -1,4 +1,4 @@
-# Know-Your-Meal
+<!-- # Know-Your-Meal
 
 ### Goal
 
@@ -26,5 +26,61 @@ The following is a brief description of the pipeline of the project so far.
   <source src="media/ui6_for_readme.mp4" type="video/mp4">
 </video>
 </p> -->
-
+<!--
 ![](media/ui6_works_perfectly-ezgif.com-video-to-gif-converter.gif)
+
+### Future Scope
+
+As of now, the app performs food detection based on the pipeline described above. In future we want to integrate calorie estimation of the food items as well. Further improvements could also be made on the presentation front. -->
+
+## Project Goal
+
+**Know-Your-Meal** aims to identify and analyze the contents of a food plate—typically an Indian thali—from an image. The system detects individual food items and provides nutritional insights, including calorie estimates.
+
+---
+
+## Current Progress
+
+### System Architecture
+
+The core logic follows this pipeline:
+
+![Current Process](media/expected_process.png)
+
+### Pipeline Overview
+
+1. **User Input**  
+   The user captures an image of their meal and can choose to:
+
+   (a) Contribute the image to a growing food image database <br>
+   (b) Identify the food items in the meal <br>
+   (c) Get nutritional information, including estimated calorie content
+
+2. **Object Detection**  
+   The image is processed using [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) (v0.1.0) with the prompt:  
+   `"food. plate. cup. bowl. cutlery."`  
+   This step generates bounding boxes around relevant items.
+
+3. **Image Segmentation**  
+   The bounding boxes are passed to [SAM 2](https://github.com/facebookresearch/sam2) for segmentation. The resulting masks are filtered to isolate **food masks** from **non-food masks**.
+
+4. **Cropped Image Generation**  
+   The union of all masks (food + non-food) is used to produce a **cropped image** that focuses on the meal.
+
+5. **Food Classification**  
+   Food masks are classified using [PE-Core](https://huggingface.co/facebook/PE-Core-L14-336), currently leveraging a KNN approach with a similarity threshold of 0.6.
+
+6. **User Interface (UI)**  
+   The system generates a dynamic UI where the food regions are zoomed in and compiled into a short video. Here's a sample output:
+
+   ![](media/ui6_works_perfectly-ezgif.com-video-to-gif-converter.gif)
+
+---
+
+## Future Plans
+
+- **Calorie Estimation:**  
+  Integrate precise calorie and nutritional estimation for each identified food item.
+
+- **Improved UI/UX:**  
+  Enhance the presentation layer to provide a more intuitive and engaging user experience.

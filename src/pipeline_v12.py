@@ -24,9 +24,9 @@ import core.vision_encoder.pe as pe
 import core.vision_encoder.transforms as pe_transforms
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 from pdb import set_trace as stx
-from classification import PEClassifier
+from config_files.classification import PEClassifier
 from scipy.ndimage import binary_closing, binary_fill_holes, generate_binary_structure
-from config import ExperimentConfig
+from config_files.config import ExperimentConfig
 from scipy.spatial.distance import cdist
 
 import json

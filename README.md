@@ -84,3 +84,5 @@ The core logic follows this pipeline:
 
 - **Improved UI/UX:**  
   Enhance the presentation layer to provide a more intuitive and engaging user experience.
+
+<sub><sup>Note: To use the current file structure as it is in the current repo, please appropriately modify the file paths.</sup></sub>

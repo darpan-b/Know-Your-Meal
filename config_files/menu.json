@@ -406,7 +406,7 @@
       "green-salad",
       "live-roti-with-ghee",
       "plain-rice",
-      "watermelon",
+      "pineapple",
       "curd",
       "chutney",
       "dal",
@@ -511,7 +511,7 @@
       "green-salad",
       "rice",
       "lemon-rice",
-      "chutney",
+      "mango-pickle",
       "dal",
       "non-spicy-dal",
       "gutti-vankaya-curry",
@@ -575,5 +575,19 @@
       "curd",
       "chutney",
       "papad"
-  ]  
+  ],
+  "20250717": [
+      "plain-rice",
+      "non-spicy-dal",
+      "roti",
+      "green-salad",
+      "dal",
+      "curd",
+      "chutney",
+      "beetroot",
+      "banana",
+      "malai-kofta-curry",
+      "veg-biryani",
+      "non-spicy-beetroot"
+  ]
 }
